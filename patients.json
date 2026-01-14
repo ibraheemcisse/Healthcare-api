@@ -1,0 +1,23 @@
+[
+  {
+    "id": "c57984a7-71af-4453-a9f8-bb06159e54cd",
+    "name": "Ibrahim",
+    "age": 28,
+    "condition": "checkup",
+    "registered_at": "2026-01-14T16:13:40.122936"
+  },
+  {
+    "id": "422b867e-be8d-4d35-9a81-544cbe9d2f9e",
+    "name": "Luke",
+    "age": 35,
+    "condition": "flu",
+    "registered_at": "2026-01-14T16:13:40.122959"
+  },
+  {
+    "id": "79048607-dad7-4fe9-9908-ce30f7aa5020",
+    "name": "Sara",
+    "age": 42,
+    "condition": "diabetes",
+    "registered_at": "2026-01-14T16:13:40.122968"
+  }
+]
