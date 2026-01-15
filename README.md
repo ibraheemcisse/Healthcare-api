@@ -1,31 +1,31 @@
 # Healthcare Appointment System
 
-REST API for managing patient appointments and doctor schedules.
+A healthcare management service demonstrating full-stack system ownership from an infrastructure engineering perspective.
 
 ## Overview
 
-A FastAPI-based healthcare management system demonstrating modern API design, data validation, and database operations. Built with PostgreSQL backend and containerized for deployment.
+This service manages patient records, appointments, and doctor schedules. It's built incrementally with a focus on correctness, reliability, and operational thinking — applying SRE principles to application development.
 
-## Tech Stack
+## Why This Project Exists
 
-- **Backend:** Python 3.12, FastAPI
-- **Database:** PostgreSQL (planned)
-- **Storage:** JSON (current), migrating to PostgreSQL
-- **Containerization:** Docker (planned)
+Most SREs operate services built by others. This project bridges that gap by owning the entire stack: API design, data models, persistence, deployment, and observability.
 
-## Features
+**Goal:** Demonstrate how application code, infrastructure, and operations integrate in real systems.
 
-**Patient Management**
-- Patient registration with validation
-- Search and filter capabilities
+## Current Implementation
+
+**Core Features:**
+- Patient registration and management
 - Appointment scheduling
-- UUID-based identification
-
-**Data Operations**
-- Input validation (Pydantic models)
-- JSON persistence with error handling
+- Doctor schedule queries
+- UUID-based identifiers
+- Input validation and error handling
 - Modular architecture
-- RESTful API design (in progress)
+
+**Tech Stack:**
+- Python 3.12
+- JSON persistence (migrating to PostgreSQL)
+- Modular service design
 
 ## Project Structure
 ```
@@ -33,63 +33,53 @@ healthcare-api/
 ├── app/
 │   ├── models.py       # Data models and validation
 │   ├── registry.py     # Core business logic
-│   └── utils.py        # Utility functions
+│   └── utils.py        # Utilities
 └── test_modules.py     # Integration tests
 ```
 
-## Quick Start
+Business logic is isolated from transport layer (API/storage) for testability and reusability.
+
+## Development Phases
+
+**Phase 1 (Complete):** Core logic, validation, file-based storage  
+**Phase 2 (In Progress):** FastAPI REST endpoints  
+**Phase 3 (Upcoming):** PostgreSQL + migrations  
+**Phase 4 (Upcoming):** Docker deployment  
+**Phase 5 (Planned):** Observability (Prometheus, health checks, SLOs)
+
+## Running Locally
 ```bash
 git clone https://github.com/ibraheemcisse/healthcare-api.git
 cd healthcare-api
-
-# Test current implementation
 python3 test_modules.py
 ```
 
-## API Endpoints (Coming Soon)
+## API Design (Coming Soon)
 ```
-POST   /patients              Create patient record
-GET    /patients              List all patients
-GET    /patients/{id}         Get patient by ID
+POST   /patients              Create patient
+GET    /patients              List patients
+GET    /patients/{id}         Get patient details
 POST   /appointments          Schedule appointment
-GET    /doctors/{id}/schedule View doctor appointments
+GET    /doctors/{id}/schedule View appointments
 ```
-
-## Current Status
-
-**Completed:**
-- Core patient management logic
-- Data validation layer
-- File-based persistence
-- Modular code organization
-
-**In Progress:**
-- FastAPI REST endpoints
-- PostgreSQL migration
-- Docker containerization
-- Deployment configuration
-
-## Development Roadmap
-
-- **Week 2:** REST API with FastAPI
-- **Week 3:** PostgreSQL integration with migrations
-- **Week 4:** Docker containerization and deployment
-- **Week 5+:** Kubernetes deployment (separate lab project)
 
 ## Skills Demonstrated
 
-- Python application architecture
-- Data validation and error handling
-- Modular design patterns
-- API design principles
-- Version control practices
+- Service-oriented architecture
+- Data validation and integrity
+- API design patterns
+- Modular code organization
+- Incremental development
+- SRE mindset applied to application development
 
-## License
+## What's Next
 
-MIT
+- REST API with FastAPI
+- PostgreSQL integration
+- Container deployment
+- Prometheus metrics
+- Health monitoring
 
-## Contact
+---
 
-Ibrahim Cisse - [LinkedIn](https://linkedin.com/in/ibraheemcisse) - [Medium](https://medium.com/@Ibraheemcisse)
-
-Project Link: https://github.com/ibraheemcisse/healthcare-api
+**Contact:** Ibrahim Cisse | [LinkedIn](https://linkedin.com/in/ibraheemcisse) | [Medium](https://medium.com/@Ibraheemcisse)
