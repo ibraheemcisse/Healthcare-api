@@ -1,0 +1,16 @@
+[
+  {
+    "id": "d00ed7d2-a437-4cd6-bcb8-e0130ff68005",
+    "name": "Ibrahim",
+    "age": 28,
+    "condition": "checkup",
+    "registered_at": "2026-01-15T12:33:15.676382"
+  },
+  {
+    "id": "78bb9628-c91b-4a12-af75-a3fa8f49aebd",
+    "name": "Luke",
+    "age": 35,
+    "condition": "flu",
+    "registered_at": "2026-01-15T12:33:15.676403"
+  }
+]
