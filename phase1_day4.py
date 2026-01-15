@@ -32,6 +32,22 @@ class PatientRegistry:
             if name.lower() in patient['name'].lower():
                 results.append(patient)
         return results
+    
+    def filter_by_age(self, min_age=None, max_age=None):
+        results = []
+        for patient in self.patients:
+            if (min_age is None or patient['age'] >= min_age) and (max_age is None or patient['age'] <= max_age):
+                results.append(patient)
+        return results
+    
+    def filter_by_id(self, patient_id):
+        for patient in self.patients:
+            if patient['id'] == patient_id:
+                return patient
+        return None
+    
+    def get_count(self):
+        return len(self.patients)
 
 # Test it
 clinic = PatientRegistry()
@@ -46,3 +62,10 @@ print("\n--- Searching for 'Luke' ---")
 results = clinic.search_by_name("Luke")
 for p in results:
     print(f"Found: {p['name']}, {p['condition']}")
+
+print("\n--- Patient by 30+ ---")
+older = clinic.filter_by_age(min_age=30)
+for p in older:
+    print(f"Older patient: {p['name']}, {p['age']}")
+
+print(f"\nTotal {clinic.get_count()} patients")
