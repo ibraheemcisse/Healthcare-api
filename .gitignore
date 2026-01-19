@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 *.pyo
 venv/
+env/
 .env
 
 # IDE
@@ -11,3 +12,10 @@ venv/
 
 # OS
 .DS_Store
+
+# Data files (temporary)
+*.json
+!requirements.txt
+
+# Logs
+*.log
