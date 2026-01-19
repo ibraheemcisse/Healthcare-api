@@ -58,3 +58,19 @@ def create_patient(patient: PatientCreate):
         return new_patient
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/patients")
+def list_patients():
+    """Get all patients"""
+    return {
+        "total": registry.get_count(),
+        "patients": registry.get_all()
+    }
+
+@app.get("/patients/{patient_id}")
+def get_patient(patient_id: str):
+    """Get patient by ID"""
+    patient = registry.find_by_id(patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return patient
