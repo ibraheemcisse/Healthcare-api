@@ -71,13 +71,14 @@ class PatientRegistry:
         """Get all patients with specific condition (case-insensitive)."""
         return [p for p in self.patients if p['condition'].lower() == condition.lower()]
     
-    def schedule_appointment(self, patient_id, days_from_now):
+    def schedule_appointment(self, patient_id, days_from_now, doctor_id=None):
         """
-        Schedule an appointment for a patient.
+       Schedule an appointment for a patient.
         
         Args:
             patient_id (str): Patient UUID
             days_from_now (int): Number of days in future
+            doctor_id (str): Optional doctor ID
         
         Returns:
             dict: Updated patient with appointment, or None if not found
@@ -91,8 +92,10 @@ class PatientRegistry:
             "scheduled_for": appointment_date.isoformat(),
             "days_away": days_from_now
         }
+        if doctor_id:
+            patient['doctor_id'] = doctor_id
         return patient
-    
+
     def save_to_file(self, filename="patients.json"):
         """Save all patients to JSON file."""
         try:
@@ -110,3 +113,16 @@ class PatientRegistry:
             return True
         except (FileNotFoundError, json.JSONDecodeError):
             return False
+
+    def get_appointments_by_doctor(self, doctor_id):
+        """Get all appointments for a specific doctor"""
+        appointments = []
+        for patient in self.patients:
+            if 'appointment' in patient and patient.get('doctor_id') == doctor_id:
+                appointments.append({
+                    "patient_id": patient['id'],
+                    "patient_name": patient['name'],
+                    "scheduled_for": patient['appointment']['scheduled_for'],
+                    "days_away": patient['appointment']['days_away']
+                })
+        return appointments

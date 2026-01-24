@@ -74,3 +74,50 @@ def get_patient(patient_id: str):
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     return patient
+
+# Appointment models
+class AppointmentCreate(BaseModel):
+    patient_id: str = Field(..., description="Patient UUID")
+    doctor_id: str = Field(..., description="Doctor UUID")
+    days_from_now: int = Field(..., ge=1, le=365, description="Days in future to schedule")
+
+class AppointmentResponse(BaseModel):
+    patient_id: str
+    doctor_id: str
+    scheduled_for: str
+    days_away: int
+
+@app.post("/appointments", response_model=AppointmentResponse, status_code=201)
+def create_appointment(appointment: AppointmentCreate):
+    """Schedule an appointment for a patient"""
+    # Verify patient exists
+    patient = registry.find_by_id(appointment.patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    # Schedule appointment
+    updated_patient = registry.schedule_appointment(
+        patient_id=appointment.patient_id,
+        days_from_now=appointment.days_from_now,
+        doctor_id=appointment.doctor_id
+    )
+    
+    if not updated_patient or 'appointment' not in updated_patient:
+        raise HTTPException(status_code=500, detail="Failed to schedule appointment")
+    
+    return {
+        "patient_id": appointment.patient_id,
+        "doctor_id": appointment.doctor_id,
+        "scheduled_for": updated_patient['appointment']['scheduled_for'],
+        "days_away": updated_patient['appointment']['days_away']
+    }
+
+@app.get("/doctors/{doctor_id}/schedule")
+def get_doctor_schedule(doctor_id: str):
+    """Get all appointments for a doctor"""
+    appointments = registry.get_appointments_by_doctor(doctor_id)
+    return {
+        "doctor_id": doctor_id,
+        "total_appointments": len(appointments),
+        "appointments": appointments
+    }
