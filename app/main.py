@@ -1,26 +1,31 @@
 """
-FastAPI application entry point.
+FastAPI application entry point with PostgreSQL
 """
-
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
-from app.registry import PatientRegistry
+from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
+from typing import List
+import uuid
+
+from app.database import engine, get_db, Base
+from app.models import Patient, Appointment
+
+# Create tables
+Base.metadata.create_all(bind=engine)
 
 # Create FastAPI instance
 app = FastAPI(
     title="Healthcare Appointment API",
-    description="API for managing patient appointments",
-    version="0.1.0"
+    description="API for managing patient appointments with PostgreSQL",
+    version="0.2.0"
 )
 
-# Initialize patient registry
-registry = PatientRegistry()
-
-# Pydantic models for request/response validation
+# Pydantic models for request/response
 class PatientCreate(BaseModel):
-    name: str = Field(..., min_length=1, description="Patient's full name")
-    age: int = Field(..., ge=0, le=150, description="Patient's age")
-    condition: str = Field(..., min_length=1, description="Medical condition")
+    name: str = Field(..., min_length=1)
+    age: int = Field(..., ge=0, le=150)
+    condition: str = Field(..., min_length=1)
 
 class PatientResponse(BaseModel):
     id: str
@@ -29,95 +34,136 @@ class PatientResponse(BaseModel):
     condition: str
     registered_at: str
 
+class AppointmentCreate(BaseModel):
+    patient_id: str
+    doctor_id: str
+    days_from_now: int = Field(..., ge=1, le=365)
+
+class AppointmentResponse(BaseModel):
+    id: str
+    patient_id: str
+    doctor_id: str
+    scheduled_for: str
+
 @app.get("/")
 def root():
-    """Root endpoint - API info"""
     return {
         "service": "Healthcare Appointment API",
-        "version": "0.1.0",
-        "status": "running"
+        "version": "0.2.0",
+        "status": "running",
+        "database": "PostgreSQL"
     }
 
 @app.get("/health")
 def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "healthcare-api"
-    }
+    return {"status": "healthy", "database": "connected"}
 
 @app.post("/patients", response_model=PatientResponse, status_code=201)
-def create_patient(patient: PatientCreate):
+def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
     """Create a new patient"""
-    try:
-        new_patient = registry.add_patient(
-            name=patient.name,
-            age=patient.age,
-            condition=patient.condition
-        )
-        return new_patient
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    db_patient = Patient(
+        name=patient.name,
+        age=patient.age,
+        condition=patient.condition
+    )
+    db.add(db_patient)
+    db.commit()
+    db.refresh(db_patient)
+    
+    return PatientResponse(
+        id=str(db_patient.id),
+        name=db_patient.name,
+        age=db_patient.age,
+        condition=db_patient.condition,
+        registered_at=db_patient.registered_at.isoformat()
+    )
 
-@app.get("/patients")
-def list_patients():
+@app.get("/patients", response_model=List[PatientResponse])
+def list_patients(db: Session = Depends(get_db)):
     """Get all patients"""
-    return {
-        "total": registry.get_count(),
-        "patients": registry.get_all()
-    }
+    patients = db.query(Patient).all()
+    return [
+        PatientResponse(
+            id=str(p.id),
+            name=p.name,
+            age=p.age,
+            condition=p.condition,
+            registered_at=p.registered_at.isoformat()
+        )
+        for p in patients
+    ]
 
-@app.get("/patients/{patient_id}")
-def get_patient(patient_id: str):
+@app.get("/patients/{patient_id}", response_model=PatientResponse)
+def get_patient(patient_id: str, db: Session = Depends(get_db)):
     """Get patient by ID"""
-    patient = registry.find_by_id(patient_id)
+    try:
+        patient_uuid = uuid.UUID(patient_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid patient ID format")
+    
+    patient = db.query(Patient).filter(Patient.id == patient_uuid).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
-    return patient
-
-# Appointment models
-class AppointmentCreate(BaseModel):
-    patient_id: str = Field(..., description="Patient UUID")
-    doctor_id: str = Field(..., description="Doctor UUID")
-    days_from_now: int = Field(..., ge=1, le=365, description="Days in future to schedule")
-
-class AppointmentResponse(BaseModel):
-    patient_id: str
-    doctor_id: str
-    scheduled_for: str
-    days_away: int
+    
+    return PatientResponse(
+        id=str(patient.id),
+        name=patient.name,
+        age=patient.age,
+        condition=patient.condition,
+        registered_at=patient.registered_at.isoformat()
+    )
 
 @app.post("/appointments", response_model=AppointmentResponse, status_code=201)
-def create_appointment(appointment: AppointmentCreate):
-    """Schedule an appointment for a patient"""
+def create_appointment(appointment: AppointmentCreate, db: Session = Depends(get_db)):
+    """Schedule an appointment"""
     # Verify patient exists
-    patient = registry.find_by_id(appointment.patient_id)
+    try:
+        patient_uuid = uuid.UUID(appointment.patient_id)
+        doctor_uuid = uuid.UUID(appointment.doctor_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+    
+    patient = db.query(Patient).filter(Patient.id == patient_uuid).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     
-    # Schedule appointment
-    updated_patient = registry.schedule_appointment(
-        patient_id=appointment.patient_id,
-        days_from_now=appointment.days_from_now,
-        doctor_id=appointment.doctor_id
+    # Create appointment
+    scheduled_time = datetime.utcnow() + timedelta(days=appointment.days_from_now)
+    
+    db_appointment = Appointment(
+        patient_id=patient_uuid,
+        doctor_id=doctor_uuid,
+        scheduled_for=scheduled_time
     )
+    db.add(db_appointment)
+    db.commit()
+    db.refresh(db_appointment)
     
-    if not updated_patient or 'appointment' not in updated_patient:
-        raise HTTPException(status_code=500, detail="Failed to schedule appointment")
-    
-    return {
-        "patient_id": appointment.patient_id,
-        "doctor_id": appointment.doctor_id,
-        "scheduled_for": updated_patient['appointment']['scheduled_for'],
-        "days_away": updated_patient['appointment']['days_away']
-    }
+    return AppointmentResponse(
+        id=str(db_appointment.id),
+        patient_id=str(db_appointment.patient_id),
+        doctor_id=str(db_appointment.doctor_id),
+        scheduled_for=db_appointment.scheduled_for.isoformat()
+    )
 
-@app.get("/doctors/{doctor_id}/schedule")
-def get_doctor_schedule(doctor_id: str):
+@app.get("/doctors/{doctor_id}/schedule", response_model=List[AppointmentResponse])
+def get_doctor_schedule(doctor_id: str, db: Session = Depends(get_db)):
     """Get all appointments for a doctor"""
-    appointments = registry.get_appointments_by_doctor(doctor_id)
-    return {
-        "doctor_id": doctor_id,
-        "total_appointments": len(appointments),
-        "appointments": appointments
-    }
+    try:
+        doctor_uuid = uuid.UUID(doctor_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid doctor ID format")
+    
+    appointments = db.query(Appointment).filter(
+        Appointment.doctor_id == doctor_uuid
+    ).all()
+    
+    return [
+        AppointmentResponse(
+            id=str(a.id),
+            patient_id=str(a.patient_id),
+            doctor_id=str(a.doctor_id),
+            scheduled_for=a.scheduled_for.isoformat()
+        )
+        for a in appointments
+    ]

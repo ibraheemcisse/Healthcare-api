@@ -1,44 +1,33 @@
 """
-Patient data models and validation.
-
-This module handles patient data creation with validation.
+SQLAlchemy models for database tables
 """
-
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 import uuid
-from datetime import datetime
+from app.database import Base
 
+class Patient(Base):
+    __tablename__ = "patients"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False)
+    age = Column(Integer, nullable=False)
+    condition = Column(String(255), nullable=False)
+    registered_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationship
+    appointments = relationship("Appointment", back_populates="patient", cascade="all, delete-orphan")
 
-def create_patient_dict(name, age, condition):
-    """
-    Create a validated patient dictionary.
+class Appointment(Base):
+    __tablename__ = "appointments"
     
-    Args:
-        name (str): Patient's full name
-        age (int): Patient's age (must be 0-150)
-        condition (str): Medical condition/reason for visit
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    patient_id = Column(UUID(as_uuid=True), ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    doctor_id = Column(UUID(as_uuid=True), nullable=False)
+    scheduled_for = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    Returns:
-        dict: Patient dictionary with id, name, age, condition, registered_at
-    
-    Raises:
-        ValueError: If validation fails
-    
-    Example:
-        >>> patient = create_patient_dict("John Doe", 30, "checkup")
-        >>> print(patient['name'])
-        John Doe
-    """
-    if not name:
-        raise ValueError("Name cannot be empty")
-    if not condition:
-        raise ValueError("Condition cannot be empty")
-    if not isinstance(age, int) or age < 0 or age > 150:
-        raise ValueError("Age must be positive integer between 0-150")
-    
-    return {
-        "id": str(uuid.uuid4()),
-        "name": name,
-        "age": age,
-        "condition": condition,
-        "registered_at": datetime.now().isoformat()
-    }
+    # Relationship
+    patient = relationship("Patient", back_populates="appointments")

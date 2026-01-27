@@ -94,4 +94,4 @@ for p in flu_patients:
     print(f"- {p['name']}")
 
 print(f"\n--- Average age ---")
-print(f"{clinic.get_average_age():.1f} years")
+print(f"{clinic.get_average_age():.1f} years")touch app/__init__.py
