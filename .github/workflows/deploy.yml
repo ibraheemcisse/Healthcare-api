@@ -1,4 +1,4 @@
-name: Build and Deploy to Kubernetes
+name: Build and Push Docker Image
 
 on:
   push:
@@ -10,7 +10,7 @@ env:
   IMAGE_NAME: healthcare-api
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     
     steps:
@@ -37,26 +37,11 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
     
-    - name: Deploy to Kubernetes
-      env:
-        KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+    - name: Image pushed successfully
       run: |
-        # Install kubectl
-        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-        chmod +x kubectl
-        sudo mv kubectl /usr/local/bin/
-        
-        # Set up kubeconfig
-        mkdir -p ~/.kube
-        echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config
-        
-        # Update deployment image
-        kubectl set image deployment/healthcare-api \
-          healthcare-api=${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-          --record
-        
-        # Wait for rollout
-        kubectl rollout status deployment/healthcare-api
-        
-        # Verify deployment
-        kubectl get pods -l app=healthcare-api
+        echo "✅ Docker image pushed to Docker Hub"
+        echo "Image: ${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+        echo "Latest: ${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
+        echo ""
+        echo "To deploy to Kubernetes, run:"
+        echo "kubectl set image deployment/healthcare-api healthcare-api=${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
