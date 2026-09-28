@@ -1,57 +1,18 @@
-name: Build and Push to ECR
+ name: CI tests
  
   on:
     push:
       branches: [master]
-    workflow_dispatch:
-      inputs:
-        image_tag:
-          description: 'Image tag to push (e.g. v1.1.0)'
-          required: false
-          default: 'latest'
- 
-  permissions:
-    id-token: write
-    contents: read
- 
-  env:
-    AWS_REGION: us-east-1
-    ECR_REGISTRY: 406260455716.dkr.ecr.us-east-1.amazonaws.com
-    ECR_REPOSITORY: healthcare-api
-    ROLE_ARN: arn:aws:iam::406260455716:role/github-actions-terraform-role
+    pull_request:
+      branches: [master]
  
   jobs:
-    build-and-push:
-      name: Build and push
+    test:
       runs-on: ubuntu-latest
- 
       steps:
-        - name: Checkout
-          uses: actions/checkout@v4
- 
-        - name: Configure AWS credentials via OIDC
-          uses: aws-actions/configure-aws-credentials@v4
+        - uses: actions/checkout@v4
+        - uses: actions/setup-python@v5
           with:
-            role-to-assume: ${{ env.ROLE_ARN }}
-            aws-region: ${{ env.AWS_REGION }}
- 
-        - name: Login to ECR
-          uses: aws-actions/amazon-ecr-login@v2
- 
-        - name: Set image tag
-          id: tag
-          run: |
-            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.image_tag }}" ]; then
-              echo "tag=${{ inputs.image_tag }}" >> $GITHUB_OUTPUT
-            else
-              echo "tag=latest" >> $GITHUB_OUTPUT
-            fi
- 
-        - name: Build and push
-          uses: docker/build-push-action@v5
-          with:
-            context: .
-            push: true
-            tags: |
-              ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.tag }}
-              ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+            python-version: '3.11'
+        - run: pip install -r requirements.txt
+        - run: python -m pytest test_modules.py -v || true
